@@ -1,0 +1,65 @@
+---
+title: "IMDB Movie Data"
+author: "Kristin Lieber"
+date: "February 3, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(boot)  # needed for the cv.glm() function
+```
+
+
+```{r}
+# READ DATA
+data <- read.csv("C:\\Users\\krist_000\\Documents\\All K docs\\Statistics\\2018 Spring\\Stat proj\\IMDB-Movie-Data.csv", header=TRUE, sep= ",",na.string = " ")
+print(c("Data dimensions are", "Rows:", nrow(data), "Columns:", ncol(data)))
+colnames(data)[8] <- "Runtime"
+colnames(data)[11] <- "Revenue"
+data <- data[, c(1:10,12,11)]
+data$Year <- as.numeric(data$Year)
+data$Metascore <- as.numeric(data$Metascore)
+data$Votes <- as.numeric(data$Votes)
+data$Runtime <- as.numeric(data$Runtime)
+
+data2 <- data[complete.cases(data),]   # Assign to data2 only complete records
+print(c("Data2 dimensions are", "Rows:", nrow(data2), "Columns:", ncol(data2)))
+
+#head(data)
+str(data)
+
+# Count the number of missing values in each column
+na_count <-sapply(data, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+print(c("The number of missing values out of", nrow(data)," in each column is:"))
+na_count
+```
+
+
+```{r}
+# ANALYSIS
+
+pairs(data2[7:12])  # matrix of scatterplots
+
+# simple linear regression using one variable for 
+# numeric variables year, runtime, rating, votes, and metascore.
+
+attach(data2)
+numVars <- colnames(data2)[7:11]  # names of numeric variables
+
+for(i in seq_along(numVars)){     #for each variable in numVars
+    glm.fit <- glm(reformulate(numVars[i], "Revenue"))  # generalized linear model
+    cv.err=cv.glm(data2,glm.fit)    #leave-one-out CV
+    plot(reformulate(numVars[i], "Revenue"), 
+         main = c(numVars[i],"Leave-one-out MSE:",round(cv.err$delta[1],1)))
+    abline(glm.fit, col = "blue")
+}
+```
+```{r}
+# multivariate regression with no interaction terms
+glm.fit = glm(Revenue ~ Year + Runtime + Rating + Votes + Metascore)
+cv.err=cv.glm(data2,glm.fit)
+print (c("Year+Runtime+Rating+Votes+Metascore LOOCV:",round(cv.err$delta[1],1)))
+
+```
